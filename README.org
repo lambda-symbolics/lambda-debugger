@@ -1,0 +1,115 @@
+#+title: lambda-debugger
+
+A small, live, observable Common Lisp restart debugger. It keeps the failing
+stack live while a selector inspects a typed portable snapshot and chooses a
+restart, source-backed repair, retry, return values, or abort.
+
+* License
+
+COLL-Attribution. The complete license is in [[file:LICENSE.lisp][LICENSE.lisp]].
+
+* Installation
+
+Supported implementation: SBCL 2.6.2 or newer. Load =lambda-debugger.asd= with
+ASDF and depend on the =lambda-debugger= system. Install =trivial-gray-streams=
+for bounded diagnostic printing. Hooks, backtraces, and stream cursor locations
+use SBCL interfaces.
+
+* Direct restart selection
+
+A selector runs on the owner thread while the condition and live restart
+objects are valid. Return a restart object from =debug-session-restarts=.
+Returning two values supplies optional source-backed arguments to that restart.
+
+#+begin_src lisp
+(lambda-debugger:call-with-debugger
+ (lambda ()
+   (restart-case (error "missing value")
+     (use-value (value) value)))
+ :selector
+ (lambda (session)
+   (values (find 'use-value (lambda-debugger:debug-session-restarts session)
+                 :key #'restart-name)
+           "42")))
+#+end_src
+
+The result is an =outcome=. Its values, status, condition report, restart
+names, and selected restart name are available through the =outcome-*= readers.
+
+* Source-backed recovery
+
+Recoveries are portable proposals. The snapshot contains scoped restart IDs,
+capabilities, source context, a bounded backtrace, and normalized condition
+metadata. Validate a proposal against that snapshot before applying it.
+
+#+begin_src lisp
+(lambda-debugger:call-with-debugger
+ (lambda () (error "configuration is missing"))
+ :return-values-p t
+ :selector
+ (lambda (session)
+   (declare (ignore session))
+   (lambda-debugger:make-recovery
+    :kind :return-values
+    :report "Use the configured fallback"
+    :return-source "(values :fallback nil)")))
+#+end_src
+
+Preparation and argument sources run on the owner thread. The default evaluator
+reads exactly one form in the caller's =*package*= with =*read-eval*= bound to
+=nil=, then evaluates it and collects all returned values. Supply
+=:evaluate-source= for another policy; its callback must return a finite proper
+list of raw values. Recovery shape, capability, and live restart target checks
+precede preparation. A failed action reaches =failure-handler= and the selector
+gets another selection opportunity.
+
+* Retry and abort
+
+=:retry-operation= repeats the original thunk. =:return-values= evaluates its
+return source and completes with those values. =:abort-operation= completes
+with an aborted outcome. The selector may return =nil= for the same local abort.
+
+* Observation and metadata
+
+Pass =:observer= to receive =(event payload)= calls for =:condition=,
+=:recovery-failed=, =:retry=, =:return=, =:abort=, and =:complete=. Payloads are
+detached portable plists. Callback faults propagate to the caller.
+
+#+begin_src lisp
+(lambda-debugger:call-with-debugger
+ (lambda () (values 42 nil))
+ :observer (lambda (event payload)
+             (format t "~S ~S~%" event payload)))
+#+end_src
+
+=condition-metadata= returns category, fields, and optional location data.
+Add a typed method for your condition classes. Snapshot construction bounds
+and copies the result. Capture reader metadata while the error is signaling:
+SBCL may discard a string stream on close. String-stream line and column are
+one-based cursor coordinates; file positions use the stream's offset units.
+
+#+begin_src lisp
+(defmethod lambda-debugger:condition-metadata
+    ((condition my-configuration-error))
+  (declare (ignore condition))
+  '(:category :configuration
+    :fields ((:label "Key" :value "database.url"))
+    :location nil))
+#+end_src
+
+* Lifecycle and side effects
+
+Live condition and restart readers require the owner thread and the failure's
+dynamic extent. Use =debug-session-snapshot= for detached data on another thread
+or after recovery. Each failure has its own restart IDs; they are not reusable
+targets for later failures.
+
+Preparation precedes argument evaluation and restart invocation or retry.
+Retry repeats the original thunk, including its side effects. Recovery does not
+roll back effects already performed.
+
+* Testing
+
+Run =./script/check= with dependencies available to ASDF. It starts a fresh SBCL,
+loads the local system, and runs the behavioral tests. You can also use
+=(asdf:test-system :lambda-debugger)=.

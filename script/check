@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+
+exec "${SBCL:-sbcl}" --noinform --script "$(dirname "$0")/check.lisp" "$@"
