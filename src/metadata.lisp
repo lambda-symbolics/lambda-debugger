@@ -52,7 +52,7 @@
 (defun diagnostic--plist-value (object key)
   "Read a short possibly malformed property list without following cycles."
   (loop repeat 32
-        for tail = object then (cddr tail)
+        for tail = object then (nthcdr 2 tail)
         while (and (consp tail) (consp (rest tail)))
         when (eq (first tail) key)
           return (second tail)))
