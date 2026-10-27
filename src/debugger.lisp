@@ -73,17 +73,17 @@
     (make-instance
      'debug-session :condition condition :restarts restarts
      :snapshot
-     (list :condition-type (string-downcase (diagnostic--text (type-of condition)))
-           :condition-report (diagnostic--text condition)
-           :source (diagnostic--bounded-string source 16384)
-           :operation-kind operation-kind
-           :restarts (loop for restart in restarts for index from 1
-                           collect (list :id (format nil "~A/~D" identifier index)
-                                         :report (diagnostic--text restart)))
-           :capabilities (list :invoke-restart t :repair-and-invoke t
-                               :retry-operation retry-p :repair-and-retry retry-p
-                               :return-values return-values-p :abort-operation t)
-           :backtrace (safe-backtrace)
+     (list :condition-type     (string-downcase (diagnostic--text (type-of condition)))
+           :condition-report   (diagnostic--text condition)
+           :source             (diagnostic--bounded-string source 16384)
+           :operation-kind     operation-kind
+           :restarts           (loop for restart in restarts for index from 1
+                                     collect (list :id     (format nil "~A/~D" identifier index)
+                                                   :report (diagnostic--text restart)))
+           :capabilities       (list :invoke-restart t :repair-and-invoke t
+                                     :retry-operation retry-p :repair-and-retry retry-p
+                                     :return-values return-values-p :abort-operation t)
+           :backtrace          (safe-backtrace)
            :condition-metadata (diagnostic--metadata condition)))))
 
 
@@ -94,7 +94,7 @@
 
 HANDLER receives (condition previous-hook) and must transfer control to resolve
 a debugger entry. Both bindings are restored on every exit."
-  (let ((*debugger-hook* handler)
+  (let ((*debugger-hook*               handler)
         (sb-ext:*invoke-debugger-hook* handler))
     (funcall thunk)))
 
@@ -110,7 +110,7 @@ This is RESTART-BIND's binding protocol from SBCL src/code/restart.lisp."
 
 (defun debugger--evaluate-source (source)
   "Evaluate exactly one form in the caller's package and return all values as a list."
-  (let ((end (gensym "END-OF-SOURCE"))
+  (let ((end         (gensym "END-OF-SOURCE"))
         (*read-eval* nil))
     (multiple-value-bind (form position) (read-from-string source nil end)
       (when (eq form end)
@@ -145,18 +145,18 @@ Events are :CONDITION, :RECOVERY-FAILED, :RETRY, :RETURN, :ABORT, and :COMPLETE.
   (check-type source string)
   (check-type operation-kind keyword)
   (check-type abort-restart-name (and symbol (not null)))
-  (let ((escape-tag (gensym "DEBUGGER-FAILURE"))
-        (retry-tag (gensym "DEBUGGER-RETRY"))
-        (return-tag (gensym "DEBUGGER-RETURN"))
+  (let ((escape-tag         (gensym "DEBUGGER-FAILURE"))
+        (retry-tag          (gensym "DEBUGGER-RETRY"))
+        (return-tag         (gensym "DEBUGGER-RETURN"))
         (action-failure-tag (gensym "DEBUGGER-ACTION-FAILURE"))
-        (handling-p nil)
-        (raw-values nil)
-        (status ':ok)
-        (condition-report nil)
-        (restart-names nil)
-        (selected-name nil)
-        (active-session nil)
-        (outer-hook (or sb-ext:*invoke-debugger-hook* *debugger-hook*)))
+        (handling-p         nil)
+        (raw-values         nil)
+        (status             ':ok)
+        (condition-report   nil)
+        (restart-names      nil)
+        (selected-name      nil)
+        (active-session     nil)
+        (outer-hook         (or sb-ext:*invoke-debugger-hook* *debugger-hook*)))
     (labels ((escape (condition)
                "Transfer a callback or control failure outside our hook bindings."
                (throw escape-tag condition))
@@ -195,7 +195,7 @@ Events are :CONDITION, :RECOVERY-FAILED, :RETRY, :RETURN, :ABORT, and :COMPLETE.
                           (type-error ()
                             nil))
                   (error 'recovery-error :reason "source evaluator must return a finite proper value list"))
-                 values))
+                values))
 
              (live-target (session identifier)
                "Resolve an opaque identifier only in the current failure session."
@@ -222,21 +222,21 @@ Events are :CONDITION, :RECOVERY-FAILED, :RETRY, :RETURN, :ABORT, and :COMPLETE.
                   (unless (member (live-target active-session (recovery-restart-id proposal))
                                   (compute-restarts))
                     (recovery--reject proposal "target restart is no longer live")))
-                 (when (recovery-preparation-source proposal)
-                   (evaluate (recovery-preparation-source proposal)))
-                 (case kind
-                   ((:invoke-restart :repair-and-invoke)
-                    (invoke (live-target active-session (recovery-restart-id proposal))
-                            (recovery-argument-source proposal)))
-                   ((:retry-operation :repair-and-retry)
-                    (notify ':retry)
-                    (throw retry-tag ':retry))
-                   (:return-values
-                    (setf raw-values (evaluate (recovery-return-source proposal)))
-                    (notify ':return (list :value-count (length raw-values)))
-                    (throw return-tag ':return))
-                   (:abort-operation
-                    (abort-operation)))))
+                (when (recovery-preparation-source proposal)
+                  (evaluate (recovery-preparation-source proposal)))
+                (case kind
+                  ((:invoke-restart :repair-and-invoke)
+                   (invoke (live-target active-session (recovery-restart-id proposal))
+                           (recovery-argument-source proposal)))
+                  ((:retry-operation :repair-and-retry)
+                   (notify ':retry)
+                   (throw retry-tag ':retry))
+                  (:return-values
+                   (setf raw-values (evaluate (recovery-return-source proposal)))
+                   (notify ':return (list :value-count (length raw-values)))
+                   (throw return-tag ':return))
+                  (:abort-operation
+                   (abort-operation)))))
 
              (action-failure (condition)
                "Pass control conditions through; return other failures to selection."
@@ -258,9 +258,9 @@ Events are :CONDITION, :RECOVERY-FAILED, :RETRY, :RETURN, :ABORT, and :COMPLETE.
                                       and count t into selected-count
                                     when (eql selected-count 256)
                                       do (loop-finish)))))
-                        (session (callback #'debugger--make-session condition restarts
-                                           :source source :operation-kind operation-kind
-                                           :retry-p retry-p :return-values-p return-values-p)))
+                       (session (callback #'debugger--make-session condition restarts
+                                          :source source :operation-kind operation-kind
+                                          :retry-p retry-p :return-values-p return-values-p)))
                    (setf condition-report (getf (debugger--session-snapshot session) :condition-report)
                          restart-names (mapcar (lambda (restart)
                                                  (let ((name (restart-name restart)))
@@ -268,35 +268,35 @@ Events are :CONDITION, :RECOVERY-FAILED, :RETRY, :RETURN, :ABORT, and :COMPLETE.
                                                restarts))
                   (let ((previous-session active-session))
                     (setf handling-p t active-session session)
-                     (unwind-protect
-                          (progn
-                            (notify ':condition)
-                            (loop
-                              (multiple-value-bind (selected arguments)
-                                  (when selector (callback selector session))
-                                (unless selected (abort-operation))
-                                (let ((failure
-                                        (catch action-failure-tag
-                                          (call-with-debugger-hook
-                                           (lambda ()
-                                             (handler-bind ((serious-condition #'action-failure))
-                                               (if (typep selected 'recovery)
-                                                   (execute selected)
-                                                   (invoke selected arguments))))
-                                           (lambda (condition hook)
-                                             (declare (ignore hook))
-                                             (action-failure condition)))
-                                          nil)))
-                                  (unless failure (return))
-                                  (setf condition-report (diagnostic--text failure)
-                                        selected-name nil)
-                                  (notify ':recovery-failed
-                                          (list :recovery-condition-report condition-report))
-                                  (when failure-handler (callback failure-handler failure))))))
-                      (setf (debugger--session-live-p session) nil
-                            (slot-value session 'condition) nil
-                            (slot-value session 'restarts) nil
-                            handling-p nil active-session previous-session))))))
+                    (unwind-protect
+                         (progn
+                           (notify ':condition)
+                           (loop
+                             (multiple-value-bind (selected arguments)
+                                 (when selector (callback selector session))
+                               (unless selected (abort-operation))
+                               (let ((failure
+                                       (catch action-failure-tag
+                                         (call-with-debugger-hook
+                                          (lambda ()
+                                            (handler-bind ((serious-condition #'action-failure))
+                                              (if (typep selected 'recovery)
+                                                  (execute selected)
+                                                  (invoke selected arguments))))
+                                          (lambda (condition hook)
+                                            (declare (ignore hook))
+                                            (action-failure condition)))
+                                         nil)))
+                                 (unless failure (return))
+                                 (setf condition-report (diagnostic--text failure)
+                                       selected-name nil)
+                                 (notify ':recovery-failed
+                                         (list :recovery-condition-report condition-report))
+                                 (when failure-handler (callback failure-handler failure))))))
+                     (setf (debugger--session-live-p session) nil
+                           (slot-value session 'condition) nil
+                           (slot-value session 'restarts) nil
+                           handling-p nil active-session previous-session))))))
 
              (debugger-entry (condition hook)
                "Capture explicit debugger entry or forward an excluded condition."
@@ -327,7 +327,7 @@ Events are :CONDITION, :RECOVERY-FAILED, :RETRY, :RETURN, :ABORT, and :COMPLETE.
                               ':done))))
                     (unless (eq result ':retry) (return))))
                 (notify ':complete (list :status status :condition-report condition-report
-                                        :restart-names restart-names
+                                        :restart-names         restart-names
                                         :selected-restart-name selected-name))
                 nil)))
         (when failure (error failure)))

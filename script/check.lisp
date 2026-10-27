@@ -1,9 +1,9 @@
 (require :asdf)
 
-(let* ((script (or *load-pathname* *compile-file-pathname*))
+(let* ((script    (or *load-pathname* *compile-file-pathname*))
        (directory (uiop:pathname-directory-pathname script))
-       (root (truename (merge-pathnames "../" directory)))
-       (asd (merge-pathnames "lambda-debugger.asd" root)))
+       (root      (truename (merge-pathnames "../" directory)))
+       (asd       (merge-pathnames "lambda-debugger.asd" root)))
   (asdf:load-asd asd)
   (asdf:load-system :lambda-debugger/tests)
   (let ((run-tests (find-symbol "RUN-TESTS" (find-package "LAMBDA-DEBUGGER"))))

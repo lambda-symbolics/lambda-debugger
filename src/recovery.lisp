@@ -23,10 +23,10 @@
    (restart-id :initarg :restart-id :initform nil :reader recovery-restart-id
                :documentation "An opaque identifier from the target session snapshot.")
    (preparation-source :initarg :preparation-source :initform nil
-                       :reader recovery-preparation-source
+                       :reader        recovery-preparation-source
                        :documentation "One source form evaluated before repair recovery.")
    (argument-source :initarg :argument-source :initform nil
-                    :reader recovery-argument-source
+                    :reader        recovery-argument-source
                     :documentation "One source form producing all restart arguments.")
    (return-source :initarg :return-source :initform nil :reader recovery-return-source
                   :documentation "One source form producing replacement return values."))
@@ -38,8 +38,8 @@ values or functions supplied by a diagnosis worker."))
 (defun recovery--reject (proposal reason)
   "Signal a typed rejection without printing the proposal or its source."
   (error 'recovery-error :proposal proposal
-         :kind (when (typep proposal 'recovery) (recovery-kind proposal))
-         :reason reason))
+         :kind                     (when (typep proposal 'recovery) (recovery-kind proposal))
+         :reason                   reason))
 
 (defmethod initialize-instance :after ((proposal recovery) &key)
   "Validate and detach the proposal's basic fields at construction."
@@ -99,13 +99,13 @@ Return the same proposal. Signal RECOVERY-ERROR for invalid fields, unsupported
 capabilities, or an identifier from a different failure session."
   (unless (typep proposal 'recovery)
     (recovery--reject proposal "proposal is not a recovery"))
-  (let* ((kind (recovery-kind proposal))
-         (target (recovery-restart-id proposal))
-         (preparation (recovery-preparation-source proposal))
-         (arguments (recovery-argument-source proposal))
-         (returned (recovery-return-source proposal))
+  (let* ((kind         (recovery-kind proposal))
+         (target       (recovery-restart-id proposal))
+         (preparation  (recovery-preparation-source proposal))
+         (arguments    (recovery-argument-source proposal))
+         (returned     (recovery-return-source proposal))
          (capabilities (diagnostic--plist-value snapshot :capabilities))
-         (restarts (diagnostic--plist-value snapshot :restarts)))
+         (restarts     (diagnostic--plist-value snapshot :restarts)))
     (unless (diagnostic--plist-value capabilities kind)
       (recovery--reject proposal "operation does not support this recovery"))
     (when (member kind '(:invoke-restart :repair-and-invoke))
@@ -122,10 +122,14 @@ capabilities, or an identifier from a different failure session."
       (recovery--reject proposal "replacement values require return source"))
     (let ((allowed
             (case kind
-              (:invoke-restart '(restart-id argument-source))
-              (:repair-and-invoke '(restart-id preparation-source argument-source))
-              (:repair-and-retry '(preparation-source))
-              (:return-values '(return-source)))))
+              (:invoke-restart
+               '(restart-id argument-source))
+              (:repair-and-invoke
+               '(restart-id preparation-source argument-source))
+              (:repair-and-retry
+               '(preparation-source))
+              (:return-values
+               '(return-source)))))
       (loop for slot in '(restart-id preparation-source argument-source return-source)
             when (and (slot-value proposal slot) (not (member slot allowed)))
               do (recovery--reject proposal "fields are not allowed for this recovery kind")))

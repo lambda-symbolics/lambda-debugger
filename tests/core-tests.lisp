@@ -3,7 +3,9 @@
 ;;;; -- Behavioral Test Support --
 
 (defparameter *tests* nil "Registered behavior checks in load order.")
+
 (defparameter *test-count* 0 "Assertions performed in the current run.")
+
 (defparameter *test-repaired* nil "Owner-thread source evaluation fixture.")
 
 (define-condition assertion-failure (error)
@@ -48,9 +50,12 @@
 (defun portable-p (value)
   "Recognize the library's portable diagnostic data vocabulary."
   (typecase value
-    ((or boolean string integer keyword) t)
-    (cons (and (portable-p (first value)) (portable-p (rest value))))
-    (t nil)))
+    ((or boolean string integer keyword)
+     t)
+    (cons
+     (and (portable-p (first value)) (portable-p (rest value))))
+    (t
+     nil)))
 
 (define-condition custom-test-condition (error) ()
   (:report "custom failure")
@@ -60,8 +65,8 @@
   "Provide intentionally overlong and invalid custom diagnostic fields."
   (declare (ignore condition))
   (list :category ':custom
-        :fields (list (list :label "Long value" :value (make-string 900 :initial-element #\x))
-                      (list :label "Live object" :value #'identity))
+        :fields   (list (list :label "Long value" :value (make-string 900 :initial-element #\x))
+                        (list :label "Live object" :value #'identity))
         :location (list :pathname "test.lisp" :line 2 :column 3 :position 7)))
 
 
@@ -86,8 +91,8 @@
              (let* ((live (remove-if-not
                            (lambda (restart) (eq (restart-name restart) 'use-value))
                            (debug-session-restarts session)))
-                    (ids (mapcar (lambda (item) (getf item :id))
-                                 (getf (debug-session-snapshot session) :restarts))))
+                    (ids  (mapcar (lambda (item) (getf item :id))
+                                  (getf (debug-session-snapshot session) :restarts))))
                (check (= 2 (length live)))
                (check (= (length ids) (length (remove-duplicates ids :test #'equal))))
                (values (second live) "(values 40 2)"))))))
@@ -104,9 +109,9 @@
                                        :report-function (lambda (stream) (write-string "anonymous" stream))))
                      (error "abort")))
                  :abort-restart-name 'back-to-repl
-                 :selector (lambda (session)
-                             (check (every #'restart-name (debug-session-restarts session)))
-                             (restart-with-name session 'back-to-repl)))
+                 :selector           (lambda (session)
+                                       (check (every #'restart-name (debug-session-restarts session)))
+                                       (restart-with-name session 'back-to-repl)))
               (abort-operation () (setf outer-aborted-p t)))))
       (check (not outer-aborted-p))
       (check (eq (outcome-status outcome) ':aborted))
@@ -114,7 +119,7 @@
 
 (deftest recovery-actions
   (dolist (kind '(:invoke-restart :repair-and-invoke :retry-operation
-                 :repair-and-retry :return-values :abort-operation))
+                  :repair-and-retry :return-values :abort-operation))
     (let ((attempts 0) (effects nil))
       (setf *test-repaired* nil)
       (let ((outcome
@@ -130,16 +135,19 @@
                (lambda (session)
                  (make-recovery
                   :kind kind :report "Recover this operation"
-                  :restart-id (when (member kind '(:invoke-restart :repair-and-invoke))
-                                (restart-id-for-name session 'use-value))
+                  :restart-id      (when (member kind '(:invoke-restart :repair-and-invoke))
+                                     (restart-id-for-name session 'use-value))
                   :preparation-source
                   (when (member kind '(:repair-and-invoke :repair-and-retry))
                     "(setf lambda-debugger::*test-repaired* :ready)")
                   :argument-source (when (member kind '(:invoke-restart :repair-and-invoke))
                                      "(values 40 2)")
-                  :return-source (when (eq kind ':return-values) "(values 42 nil)"))))))
+                  :return-source   (when (eq kind ':return-values) "(values 42 nil)"))))))
         (check (eq (outcome-status outcome) (if (eq kind ':abort-operation) ':aborted ':ok)))
-        (check-equal (case kind (:abort-operation nil) (:return-values '(42 nil)) (t '(42)))
+        (check-equal (case kind (:abort-operation
+                                 nil) (:return-values
+                                       '(42 nil)) (t
+                                                   '(42)))
                      (outcome-values outcome))
         (check-equal (if (member kind '(:retry-operation :repair-and-retry)) '(2 1) '(1)) effects)
         (when (member kind '(:repair-and-invoke :repair-and-retry))
@@ -190,11 +198,11 @@
                (lambda () (error "original"))
                :return-values-p t
                :failure-handler (lambda (condition) (setf failure condition))
-               :selector (lambda (session)
-                           (let ((id (getf (first (getf (debug-session-snapshot session) :restarts)) :id)))
-                             (if first-id (check-equal first-id id) (setf first-id id)))
-                           (when (= (incf calls) 1)
-                             (make-recovery :kind ':return-values :report "bad" :return-source source))))))
+               :selector        (lambda (session)
+                                  (let ((id (getf (first (getf (debug-session-snapshot session) :restarts)) :id)))
+                                    (if first-id (check-equal first-id id) (setf first-id id)))
+                                  (when (= (incf calls) 1)
+                                    (make-recovery :kind ':return-values :report "bad" :return-source source))))))
         (check (eq (outcome-status outcome) ':aborted))
         (check (= calls 2))
         (check (typep failure 'error))))))
@@ -205,7 +213,7 @@
      (lambda () (restart-case (error "old") (use-value (value) value)))
      :selector (lambda (session)
                  (setf old-proposal (make-recovery :kind ':invoke-restart :report "old"
-                                                  :restart-id (restart-id-for-name session 'use-value)
+                                                  :restart-id      (restart-id-for-name session 'use-value)
                                                   :argument-source "1"))
                  nil))
     (let ((outcome
@@ -213,10 +221,10 @@
              (lambda () (restart-case (error "new") (use-value (value) value)))
              :failure-handler (lambda (condition)
                                 (check (typep condition 'recovery-error)) (incf failures))
-             :selector (lambda (session)
-                         (if (= (incf calls) 1)
-                             old-proposal
-                             (values (restart-with-name session 'use-value) "42"))))))
+             :selector        (lambda (session)
+                                (if (= (incf calls) 1)
+                                    old-proposal
+                                    (values (restart-with-name session 'use-value) "42"))))))
       (check-equal '(42) (outcome-values outcome))
       (check (= failures 1)))))
 
@@ -224,13 +232,13 @@
   (dolist (role '(:selector :observer :condition-p :passthrough-p :restart-p :failure-handler))
     (let ((fault (make-condition 'simple-error :format-control "callback fault")) (calls 0))
       (let* ((callback (lambda (&rest ignored) (declare (ignore ignored)) (incf calls) (error fault)))
-             (options (if (eq role ':failure-handler)
-                          (list :return-values-p t
-                                :selector (lambda (session) (declare (ignore session))
-                                            (make-recovery :kind ':return-values :report "bad"
-                                                           :return-source "(error \"action\")"))
-                                role callback)
-                          (list role callback))))
+             (options  (if (eq role ':failure-handler)
+                           (list :return-values-p t
+                                 :selector        (lambda (session) (declare (ignore session))
+                                                    (make-recovery :kind ':return-values :report "bad"
+                                                                   :return-source "(error \"action\")"))
+                                 role callback)
+                           (list role callback))))
         (check (eq fault (captured-condition
                           (lambda () (apply #'call-with-debugger (lambda () (error "operation")) options)))))
         (check (= calls 1))))))
@@ -247,7 +255,7 @@
                     (call-with-debugger
                      (lambda () (signal (make-condition 'simple-error :format-control "filtered")) :done)
                      :condition-p (constantly nil)
-                     :selector (lambda (session) (declare (ignore session)) (incf selector-calls))))))
+                     :selector    (lambda (session) (declare (ignore session)) (incf selector-calls))))))
     (check (= outer-calls 1))
     (check (zerop selector-calls)))
   (let ((fault (make-condition 'simple-error :format-control "control in action")))
@@ -255,10 +263,10 @@
                       (lambda ()
                         (call-with-debugger
                          (lambda () (error "operation")) :return-values-p t
-                         :passthrough-p (lambda (condition) (eq condition fault))
-                         :evaluate-source (lambda (source) (declare (ignore source)) (error fault))
-                         :selector (lambda (session) (declare (ignore session))
-                                     (make-recovery :kind ':return-values :report "control" :return-source "nil")))))))))
+                         :passthrough-p                                   (lambda (condition) (eq condition fault))
+                         :evaluate-source                                 (lambda (source) (declare (ignore source)) (error fault))
+                         :selector                                        (lambda (session) (declare (ignore session))
+                                                                            (make-recovery :kind ':return-values :report "control" :return-source "nil")))))))))
 
 (deftest explicit-debugger-and-hook-restoration
   (check-equal '(:continued)
@@ -326,7 +334,7 @@
     (setf (rest cycle) cycle)
     (dolist (datum (list cycle (make-string 50000 :initial-element #\x)))
       (let ((value (getf (first (getf (condition-metadata
-                                     (make-condition 'type-error :datum datum :expected-type 'integer))
+                                       (make-condition 'type-error :datum datum :expected-type 'integer))
                                     :fields)) :value)))
         (check (<= (length value) 512)))))
   (let (snapshot)

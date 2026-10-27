@@ -25,12 +25,12 @@
 
 (defun diagnostic--text (object &key (readable-p nil) (limit 512))
   "Print OBJECT into at most LIMIT characters, tolerating printer failures."
-  (let* ((buffer (make-array limit :element-type 'character :fill-pointer 0))
-         (stop-tag (gensym "DIAGNOSTIC-LIMIT"))
-         (stream (make-instance 'diagnostic-output-stream
-                                :buffer buffer :stop-tag stop-tag))
+  (let* ((buffer         (make-array limit :element-type 'character :fill-pointer 0))
+         (stop-tag       (gensym "DIAGNOSTIC-LIMIT"))
+         (stream         (make-instance 'diagnostic-output-stream
+                                        :buffer buffer :stop-tag stop-tag))
          (*print-circle* t)
-         (*print-level* 4)
+         (*print-level*  4)
          (*print-length* 16)
          (*print-pretty* nil))
     (let ((truncated-p
@@ -76,12 +76,12 @@ Snapshot construction bounds and copies these descriptions."))
 (defmethod condition-metadata ((condition type-error))
   "Describe the offending datum and the expected Common Lisp type."
   (list :category ':type-error
-        :fields (list (list :label "Value"
-                            :value (diagnostic--text (type-error-datum condition)
-                                                    :readable-p t))
-                      (list :label "Expected type"
-                            :value (diagnostic--text (type-error-expected-type condition)
-                                                    :readable-p t)))))
+        :fields   (list (list :label "Value"
+                              :value (diagnostic--text (type-error-datum condition)
+                                                      :readable-p t))
+                        (list :label "Expected type"
+                              :value (diagnostic--text (type-error-expected-type condition)
+                                                      :readable-p t)))))
 
 (defmethod condition-metadata ((condition cell-error))
   "Describe the missing or unbound cell by its name."
@@ -92,27 +92,27 @@ Snapshot construction bounds and copies these descriptions."))
                      ':unbound-variable)
                     (t
                      ':cell-error))
-        :fields (list (list :label "Name"
-                            :value (diagnostic--text (cell-error-name condition)
-                                                    :readable-p t)))))
+        :fields   (list (list :label "Name"
+                              :value (diagnostic--text (cell-error-name condition)
+                                                      :readable-p t)))))
 
 (defmethod condition-metadata ((condition arithmetic-error))
   "Describe the arithmetic operation and its operands."
   (list :category ':arithmetic-error
-        :fields (list (list :label "Operation"
-                            :value (diagnostic--text
-                                    (arithmetic-error-operation condition)
-                                    :readable-p t))
-                      (list :label "Operands"
-                            :value (diagnostic--text
-                                    (arithmetic-error-operands condition)
-                                    :readable-p t)))))
+        :fields   (list (list :label "Operation"
+                              :value (diagnostic--text
+                                      (arithmetic-error-operation condition)
+                                      :readable-p t))
+                        (list :label "Operands"
+                              :value (diagnostic--text
+                                      (arithmetic-error-operands condition)
+                                      :readable-p t)))))
 
 (defmethod condition-metadata ((condition file-error))
   "Describe the file involved in a file operation failure."
   (let ((path (file-error-pathname condition)))
     (list :category ':file-error
-          :fields (list (list :label "File" :value (diagnostic--text path)))
+          :fields   (list (list :label "File" :value (diagnostic--text path)))
           :location (when path
                       (list :pathname (diagnostic--text path))))))
 
@@ -120,24 +120,24 @@ Snapshot construction bounds and copies these descriptions."))
   "Describe the package involved in a package operation failure."
   (let ((package (package-error-package condition)))
     (list :category ':package-error
-          :fields (list (list :label "Package"
-                              :value (diagnostic--text
-                                      (if (packagep package)
-                                          (package-name package)
-                                        package)))))))
+          :fields   (list (list :label "Package"
+                                :value (diagnostic--text
+                                        (if (packagep package)
+                                            (package-name package)
+                                          package)))))))
 
 (defun diagnostic--reader-location (stream)
   "Describe the current stream cursor, with one-based string line and column."
   (let ((position (ignore-errors (file-position stream)))
-        (path (ignore-errors (namestring (pathname stream)))))
+        (path     (ignore-errors (namestring (pathname stream)))))
     (if (and (typep stream 'sb-impl::string-input-stream) (integerp position))
-        (let* ((string (sb-impl::string-input-stream-string stream))
-               (start (sb-impl::string-input-stream-start stream))
-               (end (min (length string) (+ start position)))
+        (let* ((string       (sb-impl::string-input-stream-string stream))
+               (start        (sb-impl::string-input-stream-start stream))
+               (end          (min (length string) (+ start position)))
                (last-newline (position #\Newline string :start start :end end :from-end t)))
           (list :position position
-                :line (1+ (count #\Newline string :start start :end end))
-                :column (1+ (- end (if last-newline (1+ last-newline) start)))))
+                :line     (1+ (count #\Newline string :start start :end end))
+                :column   (1+ (- end (if last-newline (1+ last-newline) start)))))
         (when (or path (integerp position))
           (list :pathname path :position position)))))
 
@@ -152,9 +152,9 @@ and COLUMN are one-based, relative to the stream's starting offset."
 
 (defun diagnostic--metadata (condition)
   "Normalize extensible metadata into a bounded detached portable description."
-  (let* ((raw (condition-metadata condition))
+  (let* ((raw      (condition-metadata condition))
          (category (diagnostic--plist-value raw :category))
-         (fields (diagnostic--plist-value raw :fields))
+         (fields   (diagnostic--plist-value raw :fields))
          (location (diagnostic--plist-value raw :location))
          (normalized-fields
            (loop repeat 16
@@ -176,7 +176,7 @@ and COLUMN are one-based, relative to the stream's starting offset."
                                         (diagnostic--bounded-string value 512)
                                         value)))))
     (list :category (if (keywordp category) category ':condition)
-          :fields normalized-fields
+          :fields   normalized-fields
           :location normalized-location)))
 
 (defun safe-backtrace (&key (count 30))
