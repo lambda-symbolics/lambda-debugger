@@ -128,7 +128,9 @@ Snapshot construction bounds and copies these descriptions."))
 
 (defun diagnostic--reader-location (stream)
   "Describe the current stream cursor, with one-based string line and column."
-  (let ((position (ignore-errors (file-position stream)))
+  (let (; mallet:suppress no-ignore-errors -- any stream class may refuse this query
+        (position (ignore-errors (file-position stream)))
+        ; mallet:suppress no-ignore-errors -- any stream class may refuse this query
         (path     (ignore-errors (namestring (pathname stream)))))
     (if (and (typep stream 'sb-impl::string-input-stream) (integerp position))
         (let* ((string       (sb-impl::string-input-stream-string stream))
