@@ -9,7 +9,9 @@
 (defparameter *test-repaired* nil "Owner-thread source evaluation fixture.")
 
 (define-condition assertion-failure (error)
-  ((description :initarg :description :reader assertion-failure-description))
+  ((description :initarg       :description
+                :reader        assertion-failure-description
+                :documentation "The text of the failed assertion."))
   (:report (lambda (condition stream)
              (write-string (assertion-failure-description condition) stream)))
   (:documentation "A failed test assertion, distinct from a deliberately signaled error."))
