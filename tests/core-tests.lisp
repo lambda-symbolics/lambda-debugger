@@ -147,9 +147,11 @@
                   :return-source   (when (eq kind ':return-values) "(values 42 nil)"))))))
         (check (eq (outcome-status outcome) (if (eq kind ':abort-operation) ':aborted ':ok)))
         (check-equal (case kind (:abort-operation
-                                 nil) (:return-values
-                                       '(42 nil)) (t
-                                                   '(42)))
+                                 nil)
+                                (:return-values
+                                 '(42 nil))
+                                (t
+                                 '(42)))
                      (outcome-values outcome))
         (check-equal (if (member kind '(:retry-operation :repair-and-retry)) '(2 1) '(1)) effects)
         (when (member kind '(:repair-and-invoke :repair-and-retry))
