@@ -102,7 +102,6 @@ capabilities, or an identifier from a different failure session."
   (let* ((kind         (recovery-kind proposal))
          (target       (recovery-restart-id proposal))
          (preparation  (recovery-preparation-source proposal))
-         (arguments    (recovery-argument-source proposal))
          (returned     (recovery-return-source proposal))
          (capabilities (diagnostic--plist-value snapshot :capabilities))
          (restarts     (diagnostic--plist-value snapshot :restarts)))
