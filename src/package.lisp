@@ -1,4 +1,6 @@
 (defpackage #:lambda-debugger
+  (:documentation "Run code with a restart debugger that lets a selector pick a restart,
+retry, return values, or abort, and describe conditions as portable data.")
   (:use #:cl)
   (:import-from #:trivial-gray-streams
                 #:fundamental-character-output-stream
