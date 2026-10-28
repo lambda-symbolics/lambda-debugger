@@ -51,8 +51,8 @@
 
 (defun diagnostic--plist-value (object key)
   "Read a short possibly malformed property list without following cycles."
-  (loop repeat 32
-        for tail = object then (nthcdr 2 tail)
+  (loop for tail = object then (nthcdr 2 tail)
+        repeat 32
         while (and (consp tail) (consp (rest tail)))
         when (eq (first tail) key)
           return (second tail)))
@@ -159,12 +159,12 @@ and COLUMN are one-based, relative to the stream's starting offset."
          (fields   (diagnostic--plist-value raw :fields))
          (location (diagnostic--plist-value raw :location))
          (normalized-fields
-           (loop repeat 16
-                 for tail = fields then (rest tail)
+           (loop for tail = fields then (rest tail)
                  while (consp tail)
                  for field = (first tail)
                  for label = (diagnostic--plist-value field :label)
                  for value = (diagnostic--plist-value field :value)
+                 repeat 16
                  when (and (stringp label) (stringp value))
                    collect (list :label (diagnostic--bounded-string label 80)
                                  :value (diagnostic--bounded-string value 512))))
