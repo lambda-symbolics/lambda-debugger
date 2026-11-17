@@ -359,6 +359,18 @@
      :observer (lambda (event payload) (check (portable-p payload)) (push event events)))
     (check-equal '(:condition :retry :complete) (reverse events))))
 
+(defgeneric test-dispatch-probe (value)
+  (:documentation "A generic function no method serves, for dispatch failure reports."))
+
+(deftest dispatch-failure-report
+  (let ((report (safe-condition-report
+                 (captured-condition (lambda () (test-dispatch-probe "secret argument"))))))
+    (check (search "TEST-DISPATCH-PROBE" report) "the report names the generic function")
+    (check (search "STRING" report) "the report names each argument's class")
+    (check (not (search "secret" report)) "the report leaves the arguments out"))
+  (check (null (safe-condition-report (make-condition 'simple-error :format-control "plain")))
+         "a condition without a safe description has none"))
+
 (defun run-tests ()
   "Run all registered behavior owners, returning failures and assertion count."
   (let ((*test-count* 0) (failures 0))

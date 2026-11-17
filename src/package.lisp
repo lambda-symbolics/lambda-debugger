@@ -18,4 +18,4 @@ retry, return values, or abort, and describe conditions as portable data.")
            #:recovery-return-source
            #:recovery-error #:recovery-error-proposal #:recovery-error-kind
            #:recovery-error-reason
-           #:condition-metadata #:safe-backtrace))
+           #:condition-metadata #:safe-backtrace #:safe-condition-report))

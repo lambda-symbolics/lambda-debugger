@@ -191,3 +191,24 @@ and COLUMN are one-based, relative to the stream's starting offset."
                                       :from ':current-frame))
     (error ()
       nil)))
+
+(defun safe-condition-report (condition)
+  "Return an argument-free description of CONDITION on SBCL, or NIL when it has none.
+
+A generic function call that no method accepts is described by the function's
+name and the class of each argument. The arguments themselves stay out, as they
+do in SAFE-BACKTRACE, so the description can go where their values must not."
+  (handler-case
+      (let ((dispatch  (find-symbol "EFFECTIVE-METHOD-CONDITION" "SB-PCL"))
+            (arguments (find-symbol "ARGS" "SB-PCL")))
+        (when (and dispatch arguments (typep condition dispatch))
+          (format nil "Generic function ~A with arguments of classes ~A."
+                  (diagnostic--text (sb-mop:generic-function-name
+                                     (slot-value condition 'generic-function))
+                                    :readable-p t :limit 160)
+                  (diagnostic--text (loop for argument in (slot-value condition arguments)
+                                          repeat 16
+                                          collect (class-name (class-of argument)))
+                                    :readable-p t :limit 320))))
+    (error ()
+      nil)))
