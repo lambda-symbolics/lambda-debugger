@@ -1,5 +1,5 @@
 (asdf:defsystem #:lambda-debugger
-  :description "Live restart selection, portable recoveries, and typed diagnostics."
+  :description "A small embeddable and controllable Lisp debugger that can be controlled programmatically and has colors, live restart selection, portable recoveries, and typed diagnostics."
   :author      "Lambda Symbolics OÜ"
   :version     "0.1.0"
   :license     "COLL-Attribution"
