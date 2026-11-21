@@ -101,6 +101,46 @@
     (check-equal '(42) (outcome-values outcome))
     (check-equal "USE-VALUE" (outcome-selected-restart-name outcome))))
 
+(deftest restart-snapshot-reports
+  (let ((calls (make-array 3 :initial-element 0)))
+    (labels ((report (index stream)
+               "Exercise empty, bounded and failed reports without repeated printing."
+               (incf (aref calls index))
+               (ecase index
+                 (0
+                  (write-string "" stream))
+                 (1
+                  (write-string (make-string 1000 :initial-element #\x) stream))
+                 (2
+                  (error "report failed")))))
+      (let ((outcome
+              (call-with-debugger
+               (lambda ()
+                 (block operation
+                   (restart-bind
+                       ((use-value (lambda () (return-from operation :empty))
+                          :report-function (lambda (stream) (report 0 stream)))
+                        (use-value (lambda () (return-from operation :bounded))
+                          :report-function (lambda (stream) (report 1 stream)))
+                        (use-value (lambda () (return-from operation :failed-report))
+                          :report-function (lambda (stream) (report 2 stream))))
+                     (error "snapshot reports"))))
+               :restart-p (lambda (restart) (eq (restart-name restart) 'use-value))
+               :selector
+               (lambda (session)
+                  (let* ((live         (debug-session-restarts session))
+                         (calls-before (coerce calls 'list))
+                         (descriptions (getf (debug-session-snapshot session) :restarts)))
+                    (check-equal '(use-value use-value use-value) (mapcar #'restart-name live))
+                    (check-equal "" (getf (first descriptions) :report))
+                    (check (= 512 (length (getf (second descriptions) :report))))
+                    (check (plusp (length (getf (third descriptions) :report))))
+                    (check-equal descriptions (getf (debug-session-snapshot session) :restarts))
+                    (check (every #'plusp calls-before))
+                    (check-equal calls-before (coerce calls 'list))
+                    (third live))))))
+        (check-equal '(:failed-report) (outcome-values outcome))))))
+
 (deftest anonymous-filter-and-local-abort
   (let ((outer-aborted-p nil))
     (let ((outcome
@@ -120,8 +160,13 @@
       (check-equal "BACK-TO-REPL" (outcome-selected-restart-name outcome)))))
 
 (deftest recovery-actions
-  (dolist (kind '(:invoke-restart :repair-and-invoke :retry-operation
-                  :repair-and-retry :return-values :abort-operation))
+  (check-equal '(:invoke-restart :repair-and-invoke :retry-operation
+                 :repair-and-retry :return-values :abort-operation)
+               (recovery-kinds))
+  (let ((kinds (recovery-kinds)))
+    (setf (first kinds) ':unsupported)
+    (check (not (member ':unsupported (recovery-kinds)))))
+  (dolist (kind (recovery-kinds))
     (let ((attempts 0) (effects nil))
       (setf *test-repaired* nil)
       (let ((outcome

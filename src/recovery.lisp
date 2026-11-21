@@ -41,11 +41,14 @@ values or functions supplied by a diagnosis worker."))
          :kind                     (when (typep proposal 'recovery) (recovery-kind proposal))
          :reason                   reason))
 
+(defun recovery-kinds ()
+  "Return a fresh list of the accepted recovery operation keywords."
+  (list :invoke-restart :repair-and-invoke :retry-operation
+        :repair-and-retry :return-values :abort-operation))
+
 (defmethod initialize-instance :after ((proposal recovery) &key)
   "Validate and detach the proposal's basic fields at construction."
-  (unless (member (recovery-kind proposal)
-                  '(:invoke-restart :repair-and-invoke :retry-operation
-                    :repair-and-retry :return-values :abort-operation))
+  (unless (member (recovery-kind proposal) (recovery-kinds))
     (recovery--reject proposal "unsupported recovery kind"))
   (let ((report (slot-value proposal 'report)))
     (unless (and (stringp report) (< 0 (length report) 8193))

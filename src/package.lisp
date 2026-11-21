@@ -12,7 +12,7 @@ retry, return values, or abort, and describe conditions as portable data.")
            #:debug-session #:debug-session-condition #:debug-session-restarts
            #:debug-session-snapshot
            #:session-error #:session-error-session #:session-error-reason
-           #:recovery #:make-recovery #:validate-recovery
+           #:recovery #:make-recovery #:validate-recovery #:recovery-kinds
            #:recovery-kind #:recovery-report #:recovery-restart-id
            #:recovery-preparation-source #:recovery-argument-source
            #:recovery-return-source

@@ -42,6 +42,10 @@ Recoveries are portable proposals. The snapshot contains scoped restart IDs,
 capabilities, source context, a bounded backtrace, and normalized condition
 metadata. Validate a proposal against that snapshot before applying it.
 
+=recovery-kinds= returns a fresh list of the accepted recovery keywords. Use
+these keywords to build proposal schemas and decode external names by matching
+against =symbol-name= rather than interning input.
+
 #+begin_src lisp
 (lambda-debugger:call-with-debugger
  (lambda () (error "configuration is missing"))
@@ -103,6 +107,11 @@ Live condition and restart readers require the owner thread and the failure's
 dynamic extent. Use =debug-session-snapshot= for detached data on another thread
 or after recovery. Each failure has its own restart IDs; they are not reusable
 targets for later failures.
+
+The ordered snapshot =:restarts= entries correspond to =debug-session-restarts=
+from that same session. Each entry includes a bounded, printer-failure-safe
+=:report=. Use it for display instead of printing the live restart again; match
+by position in the captured list, since restart names may repeat.
 
 Preparation precedes argument evaluation and restart invocation or retry.
 Retry repeats the original thunk, including its side effects. Recovery does not
